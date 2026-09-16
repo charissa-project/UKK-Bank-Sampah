@@ -9,13 +9,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterAdminDto } from './dto/register-admin.dto.js';
 import { RegisterNasabahDto } from './dto/register-nasabah.dto.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
-  ) {}
+  private readonly jwtService: JwtService,
+  private readonly prisma: PrismaService,
+  private readonly cloudinaryService: CloudinaryService,
+) {}
 
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
@@ -79,50 +81,60 @@ export class AuthService {
   }
 
   // REGISTER NASABAH
-  async registerNasabah(dto: RegisterNasabahDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: {
-        username: dto.username,
-      },
-    });
+  async registerNasabah(
+  dto: RegisterNasabahDto,
+  file?: Express.Multer.File,
+) {
+  const existingUser = await this.prisma.user.findUnique({
+    where: {
+      username: dto.username,
+    },
+  });
 
-    if (existingUser) {
-      throw new ConflictException('Username sudah digunakan');
-    }
+  if (existingUser) {
+    throw new ConflictException('Username sudah digunakan');
+  }
 
-    const hashedPassword = await this.hashPassword(dto.password);
+  const hashedPassword = await this.hashPassword(dto.password);
 
-    const user = await this.prisma.user.create({
-      data: {
-        username: dto.username,
-        password: hashedPassword,
-        role: 'NASABAH',
-        nasabah: {
-          create: {
-            namaNasabah: dto.namaNasabah,
-            alamat: dto.alamat,
-            telp: dto.telp,
-            foto: dto.foto,
-          },
+  const foto = file
+    ? await this.cloudinaryService.uploadImage(
+        file,
+        'bank-sampah/nasabah',
+      )
+    : null;
+
+  const user = await this.prisma.user.create({
+    data: {
+      username: dto.username,
+      password: hashedPassword,
+      role: 'NASABAH',
+      nasabah: {
+        create: {
+          namaNasabah: dto.namaNasabah,
+          alamat: dto.alamat,
+          telp: dto.telp,
+          foto,
         },
       },
-      include: {
-        nasabah: true,
-      },
-    });
+    },
+    include: {
+      nasabah: true,
+    },
+  });
 
-    return {
-      statusCode: 201,
-      success: true,
-      message: 'Nasabah berhasil didaftarkan',
-      data: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        nasabah: user.nasabah,
-      },
-    };
-  }
+  return {
+    statusCode: 201,
+    success: true,
+    message: 'Nasabah berhasil didaftarkan',
+    data: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      nasabah: user.nasabah,
+    },
+  };
+}
 
   // REGISTER ADMIN
   async registerAdmin(dto: RegisterAdminDto) {
