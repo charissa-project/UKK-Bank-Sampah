@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  NASABAH
+}
+
+enum JenisSampah {
+  PLASTIK
+  KERTAS
+  LOGAM
+  KACA
+}
+
+enum StatusSetor {
+  MENUNGGU_KONFIRMASI
+  DIVERIFIKASI
+  DITOLAK
+  SELESAI
+}
+
+enum StatusPenukaran {
+  DIPROSES
+  SELESAI
+}
+
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  username    String   @db.VarChar(50)
+  password    String   @db.VarChar(255)
+  role        UserRole
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nasabah     Nasabah?
+  adminBank   AdminBank?
+
+  @@unique([username])
+  @@map("users")
+}
+
+model Nasabah {
+  id          String      @id @default(uuid()) @db.Uuid
+  namaNasabah String      @db.VarChar(100)
+  alamat      String
+  telp        String      @db.VarChar(20)
+  saldoPoin   Float       @default(0)
+  foto        String?     @db.VarChar(255)
+  tanggalLahir DateTime?  @db.Date
+  userId      String      @unique @db.Uuid
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setorSampah   SetorSampah[]
+  penukaranPoin PenukaranPoin[]
+
+  @@map("nasabah")
+}
+
+model AdminBank {
+  id            String   @id @default(uuid()) @db.Uuid
+  namaUnit      String   @db.VarChar(100)
+  namaPengelola String   @db.VarChar(100)
+  telp          String   @db.VarChar(20)
+  userId        String   @unique @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setorSampah SetorSampah[]
+
+  @@map("admin_bank")
+}
+
+model KategoriSampah {
+  id          String      @id @default(uuid()) @db.Uuid
+  namaKategori String     @db.VarChar(100)
+  hargaPerKg  Float
+  poinPerKg   Float
+  jenis       JenisSampah
+  foto        String?     @db.VarChar(255)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  detailSetor  DetailSetor[]
+
+  @@map("kategori_sampah")
+}
+
+model SetorSampah {
+  id            String      @id @default(uuid()) @db.Uuid
+  kodeSetor   String        @unique @db.VarChar(50)
+  tanggal       DateTime
+  catatan       String
+  status        StatusSetor @default(MENUNGGU_KONFIRMASI)
+  catatanAdmin  String?
+  nasabahId     String      @db.Uuid
+  adminBankId   String?     @db.Uuid
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  nasabah      Nasabah       @relation(fields: [nasabahId], references: [id], onDelete: Cascade)
+  adminBank    AdminBank?    @relation(fields: [adminBankId], references: [id], onDelete: SetNull)
+  detailSetor  DetailSetor[]
+  penukaranPoin PenukaranPoin[]
+
+  @@index([nasabahId])
+  @@index([adminBankId])
+  @@map("setor_sampah")
+}
+
+model DetailSetor {
+  id                 String   @id @default(uuid()) @db.Uuid
+  idSetor            String   @db.Uuid
+  idKategoriSampah   String   @db.Uuid
+  beratKg            Float
+  subtotalPoin       Float   @default(0)
+
+  setorSampah      SetorSampah    @relation(fields: [idSetor], references: [id], onDelete: Cascade)
+  kategoriSampah   KategoriSampah @relation(fields: [idKategoriSampah], references: [id], onDelete: Restrict)
+
+  @@index([idSetor])
+  @@index([idKategoriSampah])
+  @@map("detail_setor")
+}
+
+model Hadiah {
+  id              String   @id @default(uuid()) @db.Uuid
+  namaHadiah      String   @db.VarChar(100)
+  poinDibutuhkan  Float
+  stok            Int
+  foto            String?  @db.VarChar(255)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  penukaranPoin PenukaranPoin[]
+
+  @@map("hadiah")
+}
+
+model PenukaranPoin {
+  id             String           @id @default(uuid()) @db.Uuid
+  kodePenukaran  String           @unique @db.VarChar(50)
+  tanggal        DateTime         @default(now())
+  nasabahId      String           @db.Uuid
+  idSetor        String?          @db.Uuid
+  hadiahId       String           @db.Uuid
+  poinTerpakai   Float
+  status         StatusPenukaran @default(DIPROSES)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  nasabah    Nasabah     @relation(fields: [nasabahId], references: [id], onDelete: Cascade)
+  setorSampah SetorSampah? @relation(fields: [idSetor], references: [id], onDelete: SetNull)
+  hadiah     Hadiah      @relation(fields: [hadiahId], references: [id], onDelete: Restrict)
+
+  @@index([nasabahId])
+  @@index([hadiahId])
+  @@index([idSetor])
+  @@map("penukaran_poin")
+}
