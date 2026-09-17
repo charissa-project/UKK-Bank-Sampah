@@ -7,7 +7,9 @@ import { SeedService } from './seed.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('seed')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')

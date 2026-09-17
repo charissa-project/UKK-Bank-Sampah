@@ -14,11 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 
-import {
-  ApiBody,
-  ApiConsumes,
-  ApiOperation,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 
 import { NasabahService } from './nasabah.service.js';
 
@@ -29,6 +25,7 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CreateNasabahDto } from './dto/create-nasabah.dto.js';
 import { UpdateNasabahDto } from './dto/update-nasabah.dto.js';
 
+@ApiBearerAuth()
 @Controller('admin/nasabah')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')

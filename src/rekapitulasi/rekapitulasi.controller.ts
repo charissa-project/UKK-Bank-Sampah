@@ -11,7 +11,9 @@ import { RekapitulasiQueryDto } from './dto/rekapitulasi-query.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('rekapitulasi')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')

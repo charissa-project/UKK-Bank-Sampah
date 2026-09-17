@@ -20,8 +20,9 @@ import { UpdateKategoriSampahDto } from './dto/update-kategori-sampah.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 
-
+@ApiBearerAuth()
 @Controller('kategori-sampah')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class KategoriSampahController {
