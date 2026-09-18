@@ -9,6 +9,7 @@ import {
   StatusPenukaranApi,
   UpdateStatusPenukaranDto,
 } from './dto/update-status-penukaran.dto.js';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class PenukaranPoinService {
@@ -292,48 +293,134 @@ export class PenukaranPoinService {
     };
   }
 
-  async findNota(id: string) {
-    const data =
-      await this.prisma.penukaranPoin.findUnique({
-        where: { id },
-        include: {
-          nasabah: true,
-          hadiah: true,
-        },
+  async findNota(id: string): Promise<Buffer> {
+  const data = await this.prisma.penukaranPoin.findUnique({
+    where: { id },
+    include: {
+      nasabah: true,
+      hadiah: true,
+    },
+  });
+
+  if (!data) {
+    throw new NotFoundException(
+      'Transaksi penukaran poin tidak ditemukan',
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({
+      size: 'A5',
+      margin: 40,
+    });
+
+    const buffers: Buffer[] = [];
+
+    doc.on('data', (chunk) => {
+      buffers.push(chunk);
+    });
+
+    doc.on('end', () => {
+      resolve(Buffer.concat(buffers));
+    });
+
+    doc.on('error', reject);
+
+    doc
+      .fontSize(18)
+      .font('Helvetica-Bold')
+      .text('BANK SAMPAH', {
+        align: 'center',
       });
 
-    if (!data) {
-      throw new NotFoundException(
-        'Transaksi penukaran poin tidak ditemukan',
-      );
-    }
+    doc
+      .fontSize(12)
+      .font('Helvetica')
+      .text('NOTA PENUKARAN POIN', {
+        align: 'center',
+      });
 
-    return {
-      statusCode: 200,
-      success: true,
-      message:
-        'Struk nota penukaran poin berhasil diambil',
-      data: {
-        id: data.id,
-        kodePenukaran: data.kodePenukaran,
-        tanggal: data.tanggal,
-        nasabah: {
-          namaNasabah: data.nasabah.namaNasabah,
-          telp: data.nasabah.telp,
-        },
-        hadiah: {
-          namaHadiah: data.hadiah.namaHadiah,
-          poinDibutuhkan: this.roundNumber(
-            data.hadiah.poinDibutuhkan,
-          ),
-        },
-        poinTerpakai: this.roundNumber(
-          data.poinTerpakai,
-        ),
-        status: this.mapStatusToApi(data.status),
-      },
-    };
-  }
+    doc.moveDown();
+
+    doc
+      .fontSize(10)
+      .text('================================');
+
+    doc.moveDown(0.5);
+
+    doc
+      .font('Helvetica-Bold')
+      .text(`Kode Penukaran : ${data.kodePenukaran}`);
+
+    doc
+      .font('Helvetica')
+      .text(
+        `Tanggal        : ${data.tanggal.toLocaleDateString(
+          'id-ID',
+        )}`,
+      );
+
+    doc.moveDown();
+
+    doc
+      .font('Helvetica-Bold')
+      .text('DATA NASABAH');
+
+    doc
+      .font('Helvetica')
+      .text(
+        `Nama           : ${data.nasabah.namaNasabah}`,
+      );
+
+    doc.text(
+      `Telepon        : ${data.nasabah.telp}`,
+    );
+
+    doc.moveDown();
+
+    doc
+      .font('Helvetica-Bold')
+      .text('DATA PENUKARAN');
+
+    doc
+      .font('Helvetica')
+      .text(
+        `Hadiah         : ${data.hadiah.namaHadiah}`,
+      );
+
+    doc.text(
+      `Poin Terpakai  : ${this.roundNumber(
+        data.poinTerpakai,
+      )} poin`,
+    );
+
+    doc.text(
+      `Status         : ${this.mapStatusToApi(
+        data.status,
+      )}`,
+    );
+
+    doc.moveDown();
+
+    doc
+      .fontSize(10)
+      .text('================================');
+
+    doc.moveDown();
+
+    doc
+      .fontSize(11)
+      .text('Terima kasih telah menggunakan layanan', {
+        align: 'center',
+      });
+
+    doc.text('Bank Sampah.', {
+      align: 'center',
+    });
+
+    doc.end();
+  });
+}
 
   private mapStatusToApi(status: string) {
     const statusMap: Record<string, string> = {
