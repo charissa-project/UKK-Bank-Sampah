@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 
@@ -20,7 +21,12 @@ import { UpdateKategoriSampahDto } from './dto/update-kategori-sampah.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
+
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+} from '@nestjs/swagger';
 
 @ApiBearerAuth()
 @Controller('kategori-sampah')
@@ -31,7 +37,6 @@ export class KategoriSampahController {
   ) {}
 
   // GET semua kategori
-  // Bisa diakses ADMIN dan NASABAH
   @Get()
   @Roles('ADMIN', 'NASABAH')
   async findAll() {
@@ -39,15 +44,47 @@ export class KategoriSampahController {
   }
 
   // POST kategori
-  // Hanya ADMIN
   @Post()
   @Roles('ADMIN')
- @UseInterceptors(
-  FileInterceptor('foto', {
-    storage: memoryStorage(),
-  }),
-)
-
+  @UseInterceptors(
+    FileInterceptor('foto', {
+      storage: memoryStorage(),
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        namaKategori: {
+          type: 'string',
+          example: 'Botol Plastik',
+        },
+        hargaPerKg: {
+          type: 'number',
+          example: 5000,
+        },
+        poinPerKg: {
+          type: 'number',
+          example: 50,
+        },
+        jenis: {
+          type: 'string',
+          example: 'plastik',
+        },
+        foto: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: [
+        'namaKategori',
+        'hargaPerKg',
+        'poinPerKg',
+        'jenis',
+      ],
+    },
+  })
   async create(
     @Body() dto: CreateKategoriSampahDto,
     @UploadedFile() file?: Express.Multer.File,
@@ -56,7 +93,6 @@ export class KategoriSampahController {
   }
 
   // GET detail kategori
-  // Bisa diakses ADMIN dan NASABAH
   @Get(':id')
   @Roles('ADMIN', 'NASABAH')
   async findOne(@Param('id') id: string) {
@@ -64,15 +100,41 @@ export class KategoriSampahController {
   }
 
   // PUT kategori
-  // Hanya ADMIN
   @Put(':id')
   @Roles('ADMIN')
   @UseInterceptors(
-  FileInterceptor('foto', {
-    storage: memoryStorage(),
-  }),
-)
-
+    FileInterceptor('foto', {
+      storage: memoryStorage(),
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        namaKategori: {
+          type: 'string',
+          example: 'Botol Plastik',
+        },
+        hargaPerKg: {
+          type: 'number',
+          example: 5000,
+        },
+        poinPerKg: {
+          type: 'number',
+          example: 50,
+        },
+        jenis: {
+          type: 'string',
+          example: 'plastik',
+        },
+        foto: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateKategoriSampahDto,
@@ -82,7 +144,6 @@ export class KategoriSampahController {
   }
 
   // DELETE kategori
-  // Hanya ADMIN
   @Delete(':id')
   @Roles('ADMIN')
   async remove(@Param('id') id: string) {
